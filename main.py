@@ -136,6 +136,10 @@ async def maybe_send_next_prompt(context: ContextTypes.DEFAULT_TYPE, user_row, p
     idx = int(user_row["prompt_index"])
 
     if answered != 1:
+        await context.bot.send_message(
+            chat_id=user_id,
+            text=L("message.reminder",user_id),
+        )
         return
 
     next_idx = idx
@@ -145,8 +149,8 @@ async def maybe_send_next_prompt(context: ContextTypes.DEFAULT_TYPE, user_row, p
     await send_prompt_to_user(context, user_id, prompts[next_idx])
     db_mark_prompt_sent(user_id, next_idx, sent_time)
 
-async def daily_12_msk_job(context: ContextTypes.DEFAULT_TYPE):
-    """Runs at 12:00 MSK daily: send next prompt to users who answered the previous."""
+async def daily_9_msk_job(context: ContextTypes.DEFAULT_TYPE):
+    """Runs at 9:00 MSK daily: send next prompt to users who answered the previous."""
     prompts = load_prompts()
     sent_time = now_msk()
     for u in db_all_users():
@@ -240,20 +244,20 @@ def main():
     app.add_handler(CommandHandler("stop", stop))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
 
-    # Daily at 12:00 MSK
+    # Daily at 9:00 MSK
     app.job_queue.run_daily(
-        daily_12_msk_job,
-        time=time(hour=12, minute=0, second=0, tzinfo=TZ_MSK),
-        name="daily_12_msk",
+        daily_9_msk_job,
+        time=time(hour=9, minute=0, second=0, tzinfo=TZ_MSK),
+        name="daily_9_msk",
     )
 
-    # Reminder scan every 30 minutes
-    app.job_queue.run_repeating(
-        reminder_scan_job,
-        interval=30 * 60,
-        first=30,
-        name="reminder_scan",
-    )
+    # # Reminder scan every 30 minutes
+    # app.job_queue.run_repeating(
+    #     reminder_scan_job,
+    #     interval=30 * 60,
+    #     first=30,
+    #     name="reminder_scan",
+    # )
 
     app.run_polling(close_loop=False)
 
